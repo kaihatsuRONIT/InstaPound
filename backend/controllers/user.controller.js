@@ -43,91 +43,156 @@ export const login = async (req, res) => {
                 success: false
             })
         }
-        let user = await User.findOne({email})
-        if(!user){
+        let user = await User.findOne({ email })
+        if (!user) {
             return res.status(401).json({
                 message: "incorrect email or password",
                 success: false
             })
         }
-        const isMatch = await bcrypt.compare(password,user.password)
-        if(!isMatch){
+        const isMatch = await bcrypt.compare(password, user.password)
+        if (!isMatch) {
             return res.status(401).json({
                 message: "incorrect email or password",
                 success: false
             })
         }
         user = {
-            _id : user._id,
-            username : user.username,
-            email : user.email,
-            profilePicture : user.profilePicture,
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            profilePicture: user.profilePicture,
             bio: user.bio,
-            followers : user.followers,
-            following : user.following,
-            posts : user.posts
+            followers: user.followers,
+            following: user.following,
+            posts: user.posts
         }
         const token = jwt.sign({
-            userId : user._id,
-        },process.env.JWT_SECRET, {expiresIn: '1d'})
-        return res.cookie("token",token, {httpOnly : true, sameSite : 'strict', maxAge: 1*24*60*60*1000}).json({
+            userId: user._id,
+        }, process.env.JWT_SECRET, { expiresIn: '1d' })
+        return res.cookie("token", token, { httpOnly: true, sameSite: 'strict', maxAge: 1 * 24 * 60 * 60 * 1000 }).json({
             message: `welcome back, ${user.username}`,
-            success : true,
+            success: true,
+            user,
+        })
+    } catch (error) {
+        console.log(error)
+    }
+}
+export const logout = (_, res) => {
+    try {
+        return res.cookie("token", "", { maxAge: 0 }).json({
+            message: "logged Out successfully",
+            success: true,
+        })
+    } catch (error) {
+        console.log(error)
+    }
+}
+export const getProfile = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        let user = await User.findById(userId).select("-password");
+        return res.status(200).json({
+            user,
+            success: true,
+        })
+    } catch (error) {
+        console.log(error)
+    }
+}
+export const editProfile = async (req, res) => {
+    try {
+        const userId = req.id;
+        const { bio, gender } = req.body
+        const profilePicture = req.file
+        let cloudResponse;
+        if (profilePicture) {
+            const fileUri = getDataUri(profilePicture);
+            cloudResponse = await cloudinary.uploader.upload(fileUri);
+        }
+        const user = await User.findById(userId).select("-password")
+        if (!user) {
+            return res.status(404).json({
+                message: "user not found",
+                success: false
+            })
+        }
+        if (bio) user.bio = bio;
+        if (gender) user.gender = gender;
+        if (profilePicture) user.profilePicture = cloudResponse.secure_url;
+
+        await user.save();
+        return res.status(200).json({
+            message: "profile updated",
+            success: true
+            , user
+        })
+    } catch (error) {
+        console.log(error)
+    }
+}
+export const suggestedUsers = async (req, res) => {
+    try {
+        const suggestedUsers = await User.find({
+            _id: { $ne: req.id }
+        }).select("-password");
+        if (!suggestedUsers) {
+            return res.status(400).json({
+                message: "currently do not have any users",
+            })
+        }
+        return res.status(200).json({
+            success: true,
+            users: suggestedUsers,
 
         })
     } catch (error) {
         console.log(error)
     }
 }
-export const logout = (_,res)=>{
+export const followOrUnfollow = async(req,res)=>{
     try {
-        return res.cookie("token","", {maxAge : 0}).json({
-            message : "logged Out successfully",
-            success : true,
-        })
-    } catch (error) {
-        console.log(error)
-    }
-}
-export const getProfile = async (req,res)=>{
-    try {
-        const userId = req.params.id;
-        let user = await User.findById(userId);
-        return res.status(200).json({
-            user,
-            success : true,
-        })
-    } catch (error) {
-        console.log(error)
-    }
-}
-export const editProfile = async(req,res)=>{
-    try {
-        const userId = req.userId;
-        const {bio, gender} = req.body
-        const profilePicture = req.file
-        let cloudResponse;
-        if(profilePicture){
-            const fileUri = getDataUri(profilePicture);
-           cloudResponse = await cloudinary.uploader.upload(fileUri);
+        const followingPerson = req.id
+        const followedPerson = req.params.id
+        if(followingPerson === followedPerson){
+            res.status(400).json({
+                message : "you cannot follow yourself",
+                success : false
+            })
         }
-        const user = await User.findById(userId)
-        if(!user){
-            return res.status(404).json({
+        const user = await User.findById(followingPerson)  //me
+        const targetUser = await User.findById(followedPerson) //RobertDowneyjr
+
+        if(!user || !targetUser){
+            res.status(404).json({
                 message : "user not found",
                 success : false
             })
         }
-        if(bio) user.bio = bio;
-        if(gender) user.gender = gender;
-        if(profilePicture) user.profilePicture = cloudResponse.Secure_url;
-
-        await user.save();
-        return res.status(200).json({
-            message : "profile updated",
-            success : true
-            ,user
-        })
+        const isFollowing = user.following.includes(followedPerson)
+        if(isFollowing){
+            //unfollow logic
+            await Promise.all([
+                User.updateOne({_id : followingPerson} , {$pull : {following : followedPerson}}),
+                User.updateOne({_id : followedPerson} , {$pull : {followers : followingPerson}})
+            ])
+            return res.status(200).json({
+                message : "unfollowed successfully",
+                success : true
+            })
+        }
+        else{
+            //follow logic
+            await Promise.all([
+                User.updateOne({_id : followingPerson} , {$push : {following : followedPerson}}),
+                User.updateOne({_id : followedPerson} , {$push : {followers : followingPerson}})
+            ])
+            return res.status(200).json({
+                message : "followed successfully",
+                success : true
+            })
+        }
     } catch (error) {
         console.log(error)
     }

@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken"
-export const authenticated = async (req, res) => {
+const isAuthenticated = async (req, res,next) => {
     try {
         const token = req.cookies.token;
         if (!token) {
@@ -20,5 +20,5 @@ export const authenticated = async (req, res) => {
     } catch (error) {
         console.log(error)
     }
-
 }
+export default isAuthenticated;

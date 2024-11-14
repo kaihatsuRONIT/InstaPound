@@ -1,6 +1,6 @@
 import mongooose from "mongoose"
 const conversationSchema = new mongooose.Schema({
-    message:[{
+    messages:[{
         type: mongooose.Schema.Types.ObjectId,
         ref: "Message"
     }],

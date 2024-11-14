@@ -6,4 +6,5 @@ const postSchema = mongoose.Schema({
     image: {type:String, required:true,},
     comments : [{type:mongoose.Schema.Types.ObjectId, ref: "comment"}]
 })
-export const Post = mongoose.model("Post", postSchema)
+const Post = mongoose.model("Post", postSchema);
+export default Post;

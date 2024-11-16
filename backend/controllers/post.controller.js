@@ -1,7 +1,7 @@
 import sharp from "sharp"
 import cloudinary from "../config/cloudinary.js"
 import Post from "../models/post.model.js"
-import { Comment } from "../models/comment.model.js"
+import Comment from "../models/comment.model.js"
 import User from "../models/user.model.js"
 export const addNewPost = async (req, res) => {
     try {
@@ -57,8 +57,9 @@ export const getAllPosts = async (req, res) => {
                 populate: { path: "author", select: "username,profilePicture" }
             })
         return res.status(200).json({
-            posts,
             success: true,
+            posts,
+            
         })
     } catch (error) {
         console.log(error)

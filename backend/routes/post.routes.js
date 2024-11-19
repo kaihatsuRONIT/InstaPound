@@ -10,6 +10,6 @@ router.route('/:id/like').get(isAuthenticated, likePost)
 router.route('/:id/dislike').get(isAuthenticated, dislikePost)
 router.route('/:id/comment').post(isAuthenticated, addComment)
 router.route('/:id/comment/all').get(isAuthenticated, getPostComments)
-router.route('/deletePost/:id').get(isAuthenticated, deletePost)
+router.route('/deletePost/:id').delete(isAuthenticated, deletePost)
 router.route('/:id/bookmark').get(isAuthenticated, bookmarkPost)
 export default router; 

@@ -50,11 +50,11 @@ export const addNewPost = async (req, res) => {
 export const getAllPosts = async (req, res) => {
     try {
         const posts = await Post.find().sort({ createdAt: -1 })
-            .populate({ path: "author", select: "username,profilePicture" })
+            .populate({ path: "author", select: "username profilePicture" })
             .populate({
                 path: "comments",
                 sort: { createdAt: -1 },
-                populate: { path: "author", select: "username,profilePicture" }
+                populate: { path: "author", select: "username profilePicture" }
             })
         return res.status(200).json({
             success: true,
@@ -69,11 +69,11 @@ export const getAuthorPosts = async (req, res) => {
     try {
         const authorId = req.id
         const posts = await Post.find({ author: authorId }).sort({ createdAt: -1 })
-            .populate({ path: "author", select: "username,profilePicture" })
+            .populate({ path: "author", select: "username profilePicture" })
             .populate({
                 path: "comments",
                 sort: { createdAt: -1 },
-                populate: { path: "author", select: "username,profilePicture" }
+                populate: { path: "author", select: "username profilePicture" }
             })
         return res.status(200).json({
             posts,
@@ -136,6 +136,7 @@ export const dislikePost = async (req, res) => {
 }
 export const addComment = async (req, res) => {
     try {
+        const authorId = req.id
         const postId = req.params.id
         const commenter = req.id
         const { text } = req.body
@@ -146,19 +147,21 @@ export const addComment = async (req, res) => {
                 success: false
             })
         }
-        const comment = Comment.create({
+        const comment = await Comment.create({
             text,
             author: authorId,
-            post: postId
-        }).populate({
+            post: postId,
+        });
+        await comment.populate({
             path: 'author',
-            select: 'username, profilePicture'
+            select: 'username profilePicture'
         });
         post.comments.push(comment._id);
         await post.save();
 
         return res.status(200).json({
             message: "comment added successfully",
+            comment,
             success: true
         })
     } catch (error) {
@@ -170,7 +173,7 @@ export const getPostComments = async (req, res) => {
         const postId = req.params.id
         const comments = await Comment.find({ post: postId }).populate({
             path: "author",
-            select: "username, profilePicture"
+            select: "username profilePicture"
         })
 
         if (!comments) {

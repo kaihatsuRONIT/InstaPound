@@ -5,6 +5,7 @@ import Login from './components/Login'
 import MainLayout from './components/MainLayout'
 import Home from './components/Home'
 import Profile from './components/Profile'
+import EditProfile from './components/EditProfile'
 
 function App() {
   const browserRouter = createBrowserRouter([
@@ -19,7 +20,11 @@ function App() {
         {
           path:'/profile/:id',
           element:<Profile/>
-        }
+        },
+        {
+          path:'/account/edit',
+          element:<EditProfile/>
+        },
       ]
     },
     {

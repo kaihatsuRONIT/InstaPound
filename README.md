@@ -1,1 +1,1 @@
-InstaPound : My fulltack web development project of Instagram Clone
+InstaPound : My fullstack web development project of Instagram Clone
